@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    let scene, camera, renderer;
+    let player, playerSpeed = 1;
+    let keys = {};
+    let cameraDistance = 10; // Distance of the camera from the player
+    let cameraAngle = Math.PI / 4; // Angle around the player for camera rotation
+
+    // Initialize scene, camera, and renderer
+    function init() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // Load grass texture
+      const textureLoader = new THREE.TextureLoader();
+      const grassTexture = textureLoader.load('https://www.greenlawnfertilizing.com/hubfs/Imported_Blog_Media/lawn-540x540_jpg-Dec-06-2023-05-34-10-0199-PM.webp');
+      grassTexture.wrapS = THREE.RepeatWrapping;  // Repeat the texture on the X axis
+      grassTexture.wrapT = THREE.RepeatWrapping;  // Repeat the texture on the Y axis
+      grassTexture.repeat.set(256, 256);  // Control the number of repetitions (adjust to your liking)
+
+      // Create the ground with grass texture
+      const geometry = new THREE.PlaneGeometry(1024, 1024);
+      const material = new THREE.MeshStandardMaterial({ 
+        map: grassTexture,
+        side: THREE.DoubleSide
+      });
+      const ground = new THREE.Mesh(geometry, material);
+      ground.rotation.x = -Math.PI / 2; // Rotate to make it flat on the Y-axis
+      scene.add(ground);
+
+      // Add lighting
+      const ambientLight = new THREE.AmbientLight(0x404040, 2); // Soft light
+      scene.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // Directional light
+      directionalLight.position.set(10, 10, 10).normalize();
+      scene.add(directionalLight);
+
+      // Create the player (a simple cube)
+      const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
+      const playerMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+      player = new THREE.Mesh(playerGeometry, playerMaterial);
+      player.position.y = 1; // Position the player above the ground
+      scene.add(player);
+
+      // Set camera position
+      camera.position.z = cameraDistance;
+      camera.position.y = 5;
+      camera.lookAt(player.position);
+
+      // Event listeners for keypresses
+      window.addEventListener('keydown', (event) => { keys[event.key] = true; });
+      window.addEventListener('keyup', (event) => { keys[event.key] = false; });
+
+      animate();
+    }
+
+    // Animate the scene
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Move camera based on arrow keys
+      if (keys['ArrowLeft']) {
+        cameraAngle -= 0.05;
+      }
+      if (keys['ArrowRight']) {
+        cameraAngle += 0.05;
+      }
+
+      // Update camera position based on camera angle
+      camera.position.x = player.position.x + cameraDistance * Math.cos(cameraAngle);
+      camera.position.z = player.position.z + cameraDistance * Math.sin(cameraAngle);
+      camera.position.y = 5; // Keep the camera height constant
+      camera.lookAt(player.position);
+
+      // Move player based on WASD keys (relative to camera direction)
+      const cameraDirection = new THREE.Vector3();
+      camera.getWorldDirection(cameraDirection);
+      cameraDirection.y = 0; // Prevent the player from moving vertically
+
+      // Normalize the direction to ensure consistent movement speed
+      cameraDirection.normalize();
+
+      if (keys['w']) {
+        player.position.x += cameraDirection.x * playerSpeed;
+        player.position.z += cameraDirection.z * playerSpeed;
+        player.rotation.y = Math.atan2(cameraDirection.x, cameraDirection.z); // Rotate player
+      }
+      if (keys['s']) {
+        player.position.x -= cameraDirection.x * playerSpeed;
+        player.position.z -= cameraDirection.z * playerSpeed;
+        player.rotation.y = Math.atan2(cameraDirection.x, cameraDirection.z); // Rotate player
+      }
+      if (keys['a']) {
+        player.position.x += cameraDirection.z * playerSpeed;
+        player.position.z -= cameraDirection.x * playerSpeed;
+        player.rotation.y = Math.atan2(cameraDirection.x, cameraDirection.z); // Rotate player
+      }
+      if (keys['d']) {
+        player.position.x -= cameraDirection.z * playerSpeed;
+        player.position.z += cameraDirection.x * playerSpeed;
+        player.rotation.y = Math.atan2(cameraDirection.x, cameraDirection.z); // Rotate player
+      }
+
+      // Render the scene
+      renderer.render(scene, camera);
+    }
+
+    // Resize the canvas when the window is resized
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Initialize the game
+    init();
+  </script>
+</body>
+</html>
